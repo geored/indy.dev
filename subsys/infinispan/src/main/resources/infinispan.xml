@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<infinispan xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xsi:schemaLocation="urn:infinispan:config:9.4 http://www.infinispan.org/schemas/infinispan-config-9.4.xsd
+                                urn:infinispan:config:store:jdbc:9.4 http://www.infinispan.org/schemas/infinispan-cachestore-jdbc-config-9.4.xsd"
+            xmlns="urn:infinispan:config:9.4"
+            xmlns:jdbc="urn:infinispan:config:store:jdbc:9.4">
+
+  <cache-container default-cache="local" name="IndyCacheManager" shutdown-hook="DEFAULT" statistics="true">
+    <local-cache-configuration name="local-template" statistics="true">
+      <memory>
+        <!--
+          Limits the cache to this by the amount of entries in the cache.
+          If choose memory or off-heap, make sure the key/value objects implements Serializable
+        -->
+        <object size="200000"/>
+      </memory>
+    </local-cache-configuration>
+
+    <local-cache name="local" configuration="local-template"/>
+
+    <local-cache name="koji-maven-version-metadata" configuration="local-template" />
+
+    <local-cache name="folo-in-progress" configuration="local-template">
+      <indexing index="LOCAL">
+        <property name="hibernate.search.model_mapping">org.commonjava.indy.folo.data.FoloCacheProducer</property>
+        <property name="default.directory_provider">ram</property>
+        <!-- <property name="hibernate.search.default.indexBase">${indy.data}/folo/search</property> -->
+      </indexing>
+    </local-cache>
+
+    <local-cache name="folo-sealed" configuration="local-template">
+      <persistence passivation="true">
+        <file-store shared="false" preload="false" fetch-state="false" path="${indy.data}/folo"/>
+      </persistence>
+      <memory>
+        <object size="1000" strategy="REMOVE" />
+      </memory>
+    </local-cache>
+
+    <local-cache name="content-index" configuration="local-template" />
+
+    <local-cache name="content-metadata" configuration="local-template"/>
+
+    <local-cache name="maven-metadata-cache" configuration="local-template"/>
+
+    <local-cache name="maven-metadata-key-cache" configuration="local-template">
+      <indexing index="LOCAL">
+        <property name="default.directory_provider">ram</property>
+      </indexing>
+    </local-cache>
+
+    <local-cache name="indy-nfs-owner-cache" deadlock-detection-spin="10000" configuration="local-template">
+      <transaction transaction-manager-lookup="org.infinispan.transaction.lookup.DummyTransactionManagerLookup"
+                   locking="PESSIMISTIC"/>
+    </local-cache>
+
+    <!--
+        This cache works for delete the fast local cache of the NFS supported repo cache on local. With the expiration,
+        it will make all cache entries expired after 1 day, and trigger the purge of the expired cache every 30 mins
+    -->
+    <local-cache name="indy-fastlocal-file-delete-cache" configuration="local-template">
+      <expiration lifespan="86400000" max-idle="86400000" interval="1800000"/>
+    </local-cache>
+
+    <local-cache name="schedule-expire-cache" configuration="local-template">
+      <expiration interval="300" />
+      <persistence passivation="true">
+        <file-store shared="false" preload="false" fetch-state="false" path="${indy.data}/scheduler"/>
+      </persistence>
+    </local-cache>
+
+    <local-cache name="nfc" configuration="local-template">
+      <!--
+        Expires in 72 hours and run expiration every 15 minutes.
+      -->
+      <expiration lifespan="259200000" max-idle="259200000" interval="900000" />
+      <memory>
+        <object size="10000000" strategy="REMOVE" />
+      </memory>
+      <indexing index="LOCAL">
+        <property name="default.directory_provider">ram</property>
+      </indexing>
+    </local-cache>
+
+    <local-cache name="prefetch-cache">
+      <persistence passivation="true">
+        <file-store shared="false" preload="true" fetch-state="false" path="${indy.data}/prefetch"/>
+      </persistence>
+      <memory>
+        <object size="20000" strategy="REMOVE" />
+      </memory>
+    </local-cache>
+
+    <!-- TODO: this should be a distributed cache when enable cluster -->
+    <local-cache name="partyline-cluster-locks">
+      <locking
+              isolation="READ_COMMITTED"
+              write-skew="true"/>
+      <transaction
+              locking="OPTIMISTIC"
+              auto-commit="true"
+              complete-timeout="60000"
+              mode="FULL_XA"
+              notifications="true"
+              protocol="DEFAULT"
+              reaper-interval="30000"
+              recovery-cache="__recoveryInfoCacheName__"
+              stop-timeout="30000"
+              transaction-manager-lookup="org.infinispan.transaction.lookup.GenericTransactionManagerLookup"/>
+      <versioning
+              scheme="SIMPLE"/>
+    </local-cache>
+
+    <!-- TODO: these should be a distributed persist cache when enable cluster -->
+    <local-cache name="store-data-v1" configuration="local-template">
+      <persistence passivation="true">
+        <file-store shared="false" preload="true" fetch-state="false" path="${indy.data}/store"/>
+      </persistence>
+    </local-cache>
+
+    <local-cache name="store-data-v2" configuration="local-template">
+      <persistence passivation="true">
+        <file-store shared="false" preload="true" fetch-state="false" path="${indy.data}/store-v2"/>
+      </persistence>
+    </local-cache>
+
+    <local-cache name="store-by-package" configuration="local-template">
+      <memory>
+        <object size="100" />
+      </memory>
+      <indexing index="LOCAL">
+        <property name="default.indexmanager">near-real-time</property>
+        <property name="default.directory_provider">local-heap</property>
+      </indexing>
+    </local-cache>
+
+    <local-cache name="affected-by-stores" configuration="local-template">
+    </local-cache>
+
+    <!--
+    A clustered lock is a lock which is distributed and shared among all nodes in the Infinispan cluster and
+    provides a way to execute code that will be synchronized between the nodes. Since 9.x.
+    -->
+<!--
+    <clustered-locks:clustered-locks>
+      <clustered-locks:clustered-lock name="store-data-manager" />
+    </clustered-locks:clustered-locks>
+-->
+
+  </cache-container>
+</infinispan>

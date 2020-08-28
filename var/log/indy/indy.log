@@ -1,0 +1,482 @@
+ 13:45:52.095 [main] INFO  o.i.c.e.InfinispanExtensionEmbedded - ISPN017003: Overriding default embedded configuration not found - adding default implementation
+ 13:45:52.123 [main] INFO  o.i.c.e.InfinispanExtensionEmbedded - ISPN017004: Overriding default embedded cache manager not found - adding default implementation
+ 13:45:52.709 [main] WARN  o.c.i.conf.DefaultIndyConfiguration - No nodeId found! Using 'localhost'.
+ 13:45:52.741 [main] INFO  o.c.indy.action.IndyLifecycleManager - 
+
+
+
+
+ STARTING Indy
+    Version: 2.5.0-SNAPSHOT
+    Built-By: gorgigeorgievski
+    Commit-ID: 4013f0e
+    Built-On: 2020-08-26 12:49 +0200
+
+
+
+
+
+ 13:45:52.751 [main] INFO  o.c.indy.action.IndyLifecycleManager - Running bootup actions...
+ 13:45:52.751 [main] INFO  o.c.indy.action.IndyLifecycleManager - Running bootup action: 'JNDI Connection Pools'
+ 13:45:52.760 [main] INFO  o.c.indy.action.IndyLifecycleManager - Running bootup action: 'parallel streams common pool'
+ 13:45:52.761 [main] INFO  o.c.indy.action.IndyLifecycleManager - Running bootup action: 'Schedule Manager'
+ 13:45:52.949 [main] INFO  o.c.i.s.infinispan.CacheProducer - Infinispan remote configuration not enabled. Skip.
+ 13:45:52.952 [main] INFO  o.c.i.s.infinispan.CacheProducer - Using CLASSPATH resource Infinispan configuration:
+
+<?xml version="1.0" encoding="UTF-8"?>
+<infinispan xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xsi:schemaLocation="urn:infinispan:config:9.4 http://www.infinispan.org/schemas/infinispan-config-9.4.xsd
+                                urn:infinispan:config:store:jdbc:9.4 http://www.infinispan.org/schemas/infinispan-cachestore-jdbc-config-9.4.xsd"
+            xmlns="urn:infinispan:config:9.4"
+            xmlns:jdbc="urn:infinispan:config:store:jdbc:9.4">
+
+  <cache-container default-cache="local" name="IndyCacheManager" shutdown-hook="DEFAULT" statistics="true">
+    <local-cache-configuration name="local-template" statistics="true">
+      <memory>
+        <!--
+          Limits the cache to this by the amount of entries in the cache.
+          If choose memory or off-heap, make sure the key/value objects implements Serializable
+        -->
+        <object size="200000"/>
+      </memory>
+    </local-cache-configuration>
+
+    <local-cache name="local" configuration="local-template"/>
+
+    <local-cache name="koji-maven-version-metadata" configuration="local-template" />
+
+    <local-cache name="folo-in-progress" configuration="local-template">
+      <indexing index="LOCAL">
+        <property name="hibernate.search.model_mapping">org.commonjava.indy.folo.data.FoloCacheProducer</property>
+        <property name="default.directory_provider">ram</property>
+        <!-- <property name="hibernate.search.default.indexBase">/Users/gorgigeorgievski/_Work/_2020/08_Aug/26.08.2020/indy/data/folo/search</property> -->
+      </indexing>
+    </local-cache>
+
+    <local-cache name="folo-sealed" configuration="local-template">
+      <persistence passivation="true">
+        <file-store shared="false" preload="false" fetch-state="false" path="/Users/gorgigeorgievski/_Work/_2020/08_Aug/26.08.2020/indy/data/folo"/>
+      </persistence>
+      <memory>
+        <object size="1000" strategy="REMOVE" />
+      </memory>
+    </local-cache>
+
+    <local-cache name="content-index" configuration="local-template" />
+
+    <local-cache name="content-metadata" configuration="local-template"/>
+
+    <local-cache name="maven-metadata-cache" configuration="local-template"/>
+
+    <local-cache name="maven-metadata-key-cache" configuration="local-template">
+      <indexing index="LOCAL">
+        <property name="default.directory_provider">ram</property>
+      </indexing>
+    </local-cache>
+
+    <local-cache name="indy-nfs-owner-cache" deadlock-detection-spin="10000" configuration="local-template">
+      <transaction transaction-manager-lookup="org.infinispan.transaction.lookup.DummyTransactionManagerLookup"
+                   locking="PESSIMISTIC"/>
+    </local-cache>
+
+    <!--
+        This cache works for delete the fast local cache of the NFS supported repo cache on local. With the expiration,
+        it will make all cache entries expired after 1 day, and trigger the purge of the expired cache every 30 mins
+    -->
+    <local-cache name="indy-fastlocal-file-delete-cache" configuration="local-template">
+      <expiration lifespan="86400000" max-idle="86400000" interval="1800000"/>
+    </local-cache>
+
+    <local-cache name="schedule-expire-cache" configuration="local-template">
+      <expiration interval="300" />
+      <persistence passivation="true">
+        <file-store shared="false" preload="false" fetch-state="false" path="/Users/gorgigeorgievski/_Work/_2020/08_Aug/26.08.2020/indy/data/scheduler"/>
+      </persistence>
+    </local-cache>
+
+    <local-cache name="nfc" configuration="local-template">
+      <!--
+        Expires in 72 hours and run expiration every 15 minutes.
+      -->
+      <expiration lifespan="259200000" max-idle="259200000" interval="900000" />
+      <memory>
+        <object size="10000000" strategy="REMOVE" />
+      </memory>
+      <indexing index="LOCAL">
+        <property name="default.directory_provider">ram</property>
+      </indexing>
+    </local-cache>
+
+    <local-cache name="prefetch-cache">
+      <persistence passivation="true">
+        <file-store shared="false" preload="true" fetch-state="false" path="/Users/gorgigeorgievski/_Work/_2020/08_Aug/26.08.2020/indy/data/prefetch"/>
+      </persistence>
+      <memory>
+        <object size="20000" strategy="REMOVE" />
+      </memory>
+    </local-cache>
+
+    <!-- TODO: this should be a distributed cache when enable cluster -->
+    <local-cache name="partyline-cluster-locks">
+      <locking
+              isolation="READ_COMMITTED"
+              write-skew="true"/>
+      <transaction
+              locking="OPTIMISTIC"
+              auto-commit="true"
+              complete-timeout="60000"
+              mode="FULL_XA"
+              notifications="true"
+              protocol="DEFAULT"
+              reaper-interval="30000"
+              recovery-cache="__recoveryInfoCacheName__"
+              stop-timeout="30000"
+              transaction-manager-lookup="org.infinispan.transaction.lookup.GenericTransactionManagerLookup"/>
+      <versioning
+              scheme="SIMPLE"/>
+    </local-cache>
+
+    <!-- TODO: these should be a distributed persist cache when enable cluster -->
+    <local-cache name="store-data-v1" configuration="local-template">
+      <persistence passivation="true">
+        <file-store shared="false" preload="true" fetch-state="false" path="/Users/gorgigeorgievski/_Work/_2020/08_Aug/26.08.2020/indy/data/store"/>
+      </persistence>
+    </local-cache>
+
+    <local-cache name="store-data-v2" configuration="local-template">
+      <persistence passivation="true">
+        <file-store shared="false" preload="true" fetch-state="false" path="/Users/gorgigeorgievski/_Work/_2020/08_Aug/26.08.2020/indy/data/store-v2"/>
+      </persistence>
+    </local-cache>
+
+    <local-cache name="store-by-package" configuration="local-template">
+      <memory>
+        <object size="100" />
+      </memory>
+      <indexing index="LOCAL">
+        <property name="default.indexmanager">near-real-time</property>
+        <property name="default.directory_provider">local-heap</property>
+      </indexing>
+    </local-cache>
+
+    <local-cache name="affected-by-stores" configuration="local-template">
+    </local-cache>
+
+    <!--
+    A clustered lock is a lock which is distributed and shared among all nodes in the Infinispan cluster and
+    provides a way to execute code that will be synchronized between the nodes. Since 9.x.
+    -->
+<!--
+    <clustered-locks:clustered-locks>
+      <clustered-locks:clustered-lock name="store-data-manager" />
+    </clustered-locks:clustered-locks>
+-->
+
+  </cache-container>
+</infinispan>
+
+
+
+ 13:45:53.012 [main] INFO  o.i.configuration.parsing.Parser - ISPN000293: Ignoring XML attribute deadlock-detection-spin, please remove from configuration file
+ 13:45:53.015 [main] WARN  o.i.configuration.parsing.Parser - ISPN000415: The write skew attribute is no longer supported since version 9.0. Attribute write-skew on line 98 will be ignored.
+ 13:45:53.017 [main] WARN  o.i.configuration.parsing.Parser - ISPN000415: The versioning is no longer supported since version 9.0. Attribute scheme on line 111 will be ignored.
+ 13:45:53.039 [main] WARN  o.i.c.c.IndexingConfigurationBuilder - ISPN000403: No indexable classes were defined for this indexed cache; switching to autodetection (support for autodetection will be removed in Infinispan 10.0).
+ 13:45:53.046 [main] WARN  o.i.c.c.IndexingConfigurationBuilder - ISPN000403: No indexable classes were defined for this indexed cache; switching to autodetection (support for autodetection will be removed in Infinispan 10.0).
+ 13:45:53.047 [main] WARN  o.i.c.c.IndexingConfigurationBuilder - ISPN000403: No indexable classes were defined for this indexed cache; switching to autodetection (support for autodetection will be removed in Infinispan 10.0).
+ 13:45:53.048 [main] WARN  o.i.c.c.IndexingConfigurationBuilder - ISPN000403: No indexable classes were defined for this indexed cache; switching to autodetection (support for autodetection will be removed in Infinispan 10.0).
+ 13:45:53.219 [main] INFO  o.i.f.GlobalComponentRegistry - ISPN000128: Infinispan version: Infinispan 'Infinity Minus ONE +2' 9.4.15.Final
+ 13:45:53.555 [main] INFO  o.c.i.s.infinispan.CacheProducer - Infinispan cluster configuration not enabled. Skip.
+ 13:45:53.651 [main] INFO  o.c.indy.action.IndyLifecycleManager - Running migration actions...
+ 13:45:53.652 [main] INFO  o.c.indy.action.IndyLifecycleManager - Running migration action: 'Legacy store-definition data migrator'
+ 13:45:53.652 [main] INFO  o.c.indy.action.IndyLifecycleManager - Running migration action: 'Flat db to ISPN store-definition data migrator'
+ 13:45:53.785 [main] INFO  o.c.indy.action.IndyLifecycleManager - Running migration action: 'aprox-promotion-rules'
+ 13:45:53.785 [main] INFO  o.c.indy.action.IndyLifecycleManager - Running migration action: 'Legacy quartz db data remove'
+ 13:45:53.785 [main] INFO  o.c.indy.action.IndyLifecycleManager - Running migration action: 'folo-sealed-records'
+ 13:45:53.785 [main] INFO  o.c.indy.action.IndyLifecycleManager - Running migration action: 'package-typed-storage'
+ 13:45:53.785 [main] INFO  o.c.indy.action.IndyLifecycleManager - Running migration action: 'HttProx origin metadata migration'
+ 13:45:53.785 [main] INFO  o.c.indy.action.IndyLifecycleManager - Running migration action: 'Koji origin metadata migration'
+ 13:45:53.785 [main] INFO  o.c.indy.action.IndyLifecycleManager - Running migration action: 'Implied-Repositories metadata origin migration'
+ 13:45:53.806 [main] WARN  o.c.m.g.io.SpecialPathManagerImpl - [Galley] The package types already contains the path set for this package type npm, will override it
+ 13:45:53.821 [main] INFO  com.datastax.driver.core.Cluster - DataStax Java driver 3.7.2 for Apache Cassandra
+ 13:45:53.862 [main] INFO  c.d.driver.core.GuavaCompatibility - Detected Guava < 19 in the classpath, using legacy compatibility layer
+ 13:46:12.185 [main] INFO  c.datastax.driver.core.ClockFactory - Using native clock to generate timestamps.
+ 13:46:12.297 [main] WARN  com.datastax.driver.core.NettyUtil - Found Netty's native epoll transport, but not running on linux-based operating system. Using NIO instead.
+ 13:46:12.586 [main] ERROR o.c.i.s.cassandra.CassandraClient - Connecting to Cassandra failed
+com.datastax.driver.core.exceptions.NoHostAvailableException: All host(s) tried for query failed (tried: localhost/127.0.0.1:9042 (com.datastax.driver.core.exceptions.TransportException: [localhost/127.0.0.1:9042] Cannot connect))
+	at com.datastax.driver.core.ControlConnection.reconnectInternal(ControlConnection.java:268)
+	at com.datastax.driver.core.ControlConnection.connect(ControlConnection.java:107)
+	at com.datastax.driver.core.Cluster$Manager.negotiateProtocolVersionAndConnect(Cluster.java:1652)
+	at com.datastax.driver.core.Cluster$Manager.init(Cluster.java:1571)
+	at com.datastax.driver.core.Cluster.init(Cluster.java:208)
+	at com.datastax.driver.core.Cluster.connectAsync(Cluster.java:376)
+	at com.datastax.driver.core.Cluster.connectAsync(Cluster.java:355)
+	at com.datastax.driver.core.Cluster.connect(Cluster.java:305)
+	at org.commonjava.indy.subsys.cassandra.CassandraClient.lambda$getSession$0(CassandraClient.java:106)
+	at java.util.concurrent.ConcurrentHashMap.computeIfAbsent(ConcurrentHashMap.java:1660)
+	at org.commonjava.indy.subsys.cassandra.CassandraClient.getSession(CassandraClient.java:101)
+	at org.commonjava.indy.subsys.cassandra.CassandraClient$Proxy$_$$_WeldClientProxy.getSession(Unknown Source)
+	at org.commonjava.indy.filer.def.DefaultGalleyStorageProvider.setupCacheProviderFactory(DefaultGalleyStorageProvider.java:200)
+	at org.commonjava.indy.filer.def.DefaultGalleyStorageProvider.setup(DefaultGalleyStorageProvider.java:176)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.lang.reflect.Method.invoke(Method.java:498)
+	at org.jboss.weld.injection.producer.DefaultLifecycleCallbackInvoker.invokeMethods(DefaultLifecycleCallbackInvoker.java:97)
+	at org.jboss.weld.injection.producer.DefaultLifecycleCallbackInvoker.postConstruct(DefaultLifecycleCallbackInvoker.java:80)
+	at org.jboss.weld.injection.producer.BasicInjectionTarget.postConstruct(BasicInjectionTarget.java:122)
+	at org.jboss.weld.bean.ManagedBean.create(ManagedBean.java:172)
+	at org.jboss.weld.context.AbstractContext.get(AbstractContext.java:96)
+	at org.jboss.weld.bean.ContextualInstanceStrategy$DefaultContextualInstanceStrategy.get(ContextualInstanceStrategy.java:100)
+	at org.jboss.weld.bean.ContextualInstanceStrategy$ApplicationScopedContextualInstanceStrategy.get(ContextualInstanceStrategy.java:140)
+	at org.jboss.weld.bean.ContextualInstance.get(ContextualInstance.java:50)
+	at org.jboss.weld.manager.BeanManagerImpl.getReference(BeanManagerImpl.java:786)
+	at org.jboss.weld.injection.producer.AbstractMemberProducer.getReceiver(AbstractMemberProducer.java:123)
+	at org.jboss.weld.injection.producer.AbstractMemberProducer.produce(AbstractMemberProducer.java:158)
+	at org.jboss.weld.bean.AbstractProducerBean.create(AbstractProducerBean.java:180)
+	at org.jboss.weld.context.unbound.DependentContextImpl.get(DependentContextImpl.java:70)
+	at org.jboss.weld.bean.ContextualInstanceStrategy$DefaultContextualInstanceStrategy.get(ContextualInstanceStrategy.java:100)
+	at org.jboss.weld.bean.ContextualInstance.get(ContextualInstance.java:50)
+	at org.jboss.weld.manager.BeanManagerImpl.getReference(BeanManagerImpl.java:786)
+	at org.jboss.weld.manager.BeanManagerImpl.getInjectableReference(BeanManagerImpl.java:886)
+	at org.jboss.weld.injection.FieldInjectionPoint.inject(FieldInjectionPoint.java:92)
+	at org.jboss.weld.util.Beans.injectBoundFields(Beans.java:358)
+	at org.jboss.weld.util.Beans.injectFieldsAndInitializers(Beans.java:369)
+	at org.jboss.weld.injection.producer.ResourceInjector$1.proceed(ResourceInjector.java:70)
+	at org.jboss.weld.injection.InjectionContextImpl.run(InjectionContextImpl.java:48)
+	at org.jboss.weld.injection.producer.ResourceInjector.inject(ResourceInjector.java:72)
+	at org.jboss.weld.injection.producer.BasicInjectionTarget.inject(BasicInjectionTarget.java:117)
+	at org.jboss.weld.bean.ManagedBean.create(ManagedBean.java:159)
+	at org.jboss.weld.context.unbound.DependentContextImpl.get(DependentContextImpl.java:70)
+	at org.jboss.weld.bean.ContextualInstanceStrategy$DefaultContextualInstanceStrategy.get(ContextualInstanceStrategy.java:100)
+	at org.jboss.weld.bean.ContextualInstance.get(ContextualInstance.java:50)
+	at org.jboss.weld.manager.BeanManagerImpl.getReference(BeanManagerImpl.java:786)
+	at org.jboss.weld.manager.BeanManagerImpl.getInjectableReference(BeanManagerImpl.java:886)
+	at org.jboss.weld.injection.FieldInjectionPoint.inject(FieldInjectionPoint.java:92)
+	at org.jboss.weld.util.Beans.injectBoundFields(Beans.java:358)
+	at org.jboss.weld.util.Beans.injectFieldsAndInitializers(Beans.java:369)
+	at org.jboss.weld.injection.producer.ResourceInjector$1.proceed(ResourceInjector.java:70)
+	at org.jboss.weld.injection.InjectionContextImpl.run(InjectionContextImpl.java:48)
+	at org.jboss.weld.injection.producer.ResourceInjector.inject(ResourceInjector.java:72)
+	at org.jboss.weld.injection.producer.BasicInjectionTarget.inject(BasicInjectionTarget.java:117)
+	at org.jboss.weld.bean.ManagedBean.create(ManagedBean.java:159)
+	at org.jboss.weld.context.AbstractContext.get(AbstractContext.java:96)
+	at org.jboss.weld.bean.ContextualInstanceStrategy$DefaultContextualInstanceStrategy.get(ContextualInstanceStrategy.java:100)
+	at org.jboss.weld.bean.ContextualInstanceStrategy$ApplicationScopedContextualInstanceStrategy.get(ContextualInstanceStrategy.java:140)
+	at org.jboss.weld.bean.ContextualInstance.get(ContextualInstance.java:50)
+	at org.jboss.weld.bean.proxy.ContextBeanInstance.getInstance(ContextBeanInstance.java:99)
+	at org.jboss.weld.bean.proxy.ProxyMethodHandler.getInstance(ProxyMethodHandler.java:125)
+	at org.commonjava.indy.httprox.HttpProxy$Proxy$_$$_WeldClientProxy.getStartupPriority(Unknown Source)
+	at org.commonjava.indy.action.IndyLifecycleManager$3.compare(IndyLifecycleManager.java:331)
+	at org.commonjava.indy.action.IndyLifecycleManager$3.compare(IndyLifecycleManager.java:327)
+	at java.util.TimSort.countRunAndMakeAscending(TimSort.java:355)
+	at java.util.TimSort.sort(TimSort.java:220)
+	at java.util.Arrays.sort(Arrays.java:1512)
+	at java.util.ArrayList.sort(ArrayList.java:1462)
+	at java.util.Collections.sort(Collections.java:177)
+	at org.commonjava.indy.action.IndyLifecycleManager.runStartupActions(IndyLifecycleManager.java:234)
+	at org.commonjava.indy.action.IndyLifecycleManager.start(IndyLifecycleManager.java:144)
+	at org.commonjava.indy.action.IndyLifecycleManager$Proxy$_$$_WeldClientProxy.start(Unknown Source)
+	at org.commonjava.indy.boot.jaxrs.JaxRsBooter.startLifecycle(JaxRsBooter.java:108)
+	at org.commonjava.propulsor.boot.Booter.start(Booter.java:278)
+	at org.commonjava.propulsor.boot.Booter.runAndWait(Booter.java:203)
+	at org.commonjava.indy.boot.jaxrs.JaxRsBooter.main(JaxRsBooter.java:66)
+ 13:46:12.591 [main] INFO  c.datastax.driver.core.ClockFactory - Using native clock to generate timestamps.
+ 13:46:12.599 [main] ERROR o.c.i.f.d.DefaultGalleyStorageProvider - [Indy] Can not create CacheProvider for some error.
+org.commonjava.maven.galley.GalleyInitException: Create cache provider failed
+	at org.commonjava.maven.galley.cache.pathmapped.PathMappedCacheProviderFactory.create(PathMappedCacheProviderFactory.java:87)
+	at org.commonjava.indy.filer.def.DefaultGalleyStorageProvider.getCacheProvider(DefaultGalleyStorageProvider.java:377)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.lang.reflect.Method.invoke(Method.java:498)
+	at org.jboss.weld.injection.StaticMethodInjectionPoint.invoke(StaticMethodInjectionPoint.java:88)
+	at org.jboss.weld.injection.StaticMethodInjectionPoint.invoke(StaticMethodInjectionPoint.java:78)
+	at org.jboss.weld.injection.producer.ProducerMethodProducer.produce(ProducerMethodProducer.java:100)
+	at org.jboss.weld.injection.producer.AbstractMemberProducer.produce(AbstractMemberProducer.java:161)
+	at org.jboss.weld.bean.AbstractProducerBean.create(AbstractProducerBean.java:180)
+	at org.jboss.weld.context.unbound.DependentContextImpl.get(DependentContextImpl.java:70)
+	at org.jboss.weld.bean.ContextualInstanceStrategy$DefaultContextualInstanceStrategy.get(ContextualInstanceStrategy.java:100)
+	at org.jboss.weld.bean.ContextualInstance.get(ContextualInstance.java:50)
+	at org.jboss.weld.manager.BeanManagerImpl.getReference(BeanManagerImpl.java:786)
+	at org.jboss.weld.manager.BeanManagerImpl.getInjectableReference(BeanManagerImpl.java:886)
+	at org.jboss.weld.injection.FieldInjectionPoint.inject(FieldInjectionPoint.java:92)
+	at org.jboss.weld.util.Beans.injectBoundFields(Beans.java:358)
+	at org.jboss.weld.util.Beans.injectFieldsAndInitializers(Beans.java:369)
+	at org.jboss.weld.injection.producer.ResourceInjector$1.proceed(ResourceInjector.java:70)
+	at org.jboss.weld.injection.InjectionContextImpl.run(InjectionContextImpl.java:48)
+	at org.jboss.weld.injection.producer.ResourceInjector.inject(ResourceInjector.java:72)
+	at org.jboss.weld.injection.producer.BasicInjectionTarget.inject(BasicInjectionTarget.java:117)
+	at org.jboss.weld.bean.ManagedBean.create(ManagedBean.java:159)
+	at org.jboss.weld.context.unbound.DependentContextImpl.get(DependentContextImpl.java:70)
+	at org.jboss.weld.bean.ContextualInstanceStrategy$DefaultContextualInstanceStrategy.get(ContextualInstanceStrategy.java:100)
+	at org.jboss.weld.bean.ContextualInstance.get(ContextualInstance.java:50)
+	at org.jboss.weld.manager.BeanManagerImpl.getReference(BeanManagerImpl.java:786)
+	at org.jboss.weld.manager.BeanManagerImpl.getInjectableReference(BeanManagerImpl.java:886)
+	at org.jboss.weld.injection.FieldInjectionPoint.inject(FieldInjectionPoint.java:92)
+	at org.jboss.weld.util.Beans.injectBoundFields(Beans.java:358)
+	at org.jboss.weld.util.Beans.injectFieldsAndInitializers(Beans.java:369)
+	at org.jboss.weld.injection.producer.ResourceInjector$1.proceed(ResourceInjector.java:70)
+	at org.jboss.weld.injection.InjectionContextImpl.run(InjectionContextImpl.java:48)
+	at org.jboss.weld.injection.producer.ResourceInjector.inject(ResourceInjector.java:72)
+	at org.jboss.weld.injection.producer.BasicInjectionTarget.inject(BasicInjectionTarget.java:117)
+	at org.jboss.weld.bean.ManagedBean.create(ManagedBean.java:159)
+	at org.jboss.weld.context.AbstractContext.get(AbstractContext.java:96)
+	at org.jboss.weld.bean.ContextualInstanceStrategy$DefaultContextualInstanceStrategy.get(ContextualInstanceStrategy.java:100)
+	at org.jboss.weld.bean.ContextualInstanceStrategy$ApplicationScopedContextualInstanceStrategy.get(ContextualInstanceStrategy.java:140)
+	at org.jboss.weld.bean.ContextualInstance.get(ContextualInstance.java:50)
+	at org.jboss.weld.bean.proxy.ContextBeanInstance.getInstance(ContextBeanInstance.java:99)
+	at org.jboss.weld.bean.proxy.ProxyMethodHandler.getInstance(ProxyMethodHandler.java:125)
+	at org.commonjava.indy.httprox.HttpProxy$Proxy$_$$_WeldClientProxy.getStartupPriority(Unknown Source)
+	at org.commonjava.indy.action.IndyLifecycleManager$3.compare(IndyLifecycleManager.java:331)
+	at org.commonjava.indy.action.IndyLifecycleManager$3.compare(IndyLifecycleManager.java:327)
+	at java.util.TimSort.countRunAndMakeAscending(TimSort.java:355)
+	at java.util.TimSort.sort(TimSort.java:220)
+	at java.util.Arrays.sort(Arrays.java:1512)
+	at java.util.ArrayList.sort(ArrayList.java:1462)
+	at java.util.Collections.sort(Collections.java:177)
+	at org.commonjava.indy.action.IndyLifecycleManager.runStartupActions(IndyLifecycleManager.java:234)
+	at org.commonjava.indy.action.IndyLifecycleManager.start(IndyLifecycleManager.java:144)
+	at org.commonjava.indy.action.IndyLifecycleManager$Proxy$_$$_WeldClientProxy.start(Unknown Source)
+	at org.commonjava.indy.boot.jaxrs.JaxRsBooter.startLifecycle(JaxRsBooter.java:108)
+	at org.commonjava.propulsor.boot.Booter.start(Booter.java:278)
+	at org.commonjava.propulsor.boot.Booter.runAndWait(Booter.java:203)
+	at org.commonjava.indy.boot.jaxrs.JaxRsBooter.main(JaxRsBooter.java:66)
+Caused by: com.datastax.driver.core.exceptions.NoHostAvailableException: All host(s) tried for query failed (tried: localhost/127.0.0.1:9042 (com.datastax.driver.core.exceptions.TransportException: [localhost/127.0.0.1:9042] Cannot connect))
+	at com.datastax.driver.core.ControlConnection.reconnectInternal(ControlConnection.java:268)
+	at com.datastax.driver.core.ControlConnection.connect(ControlConnection.java:107)
+	at com.datastax.driver.core.Cluster$Manager.negotiateProtocolVersionAndConnect(Cluster.java:1652)
+	at com.datastax.driver.core.Cluster$Manager.init(Cluster.java:1571)
+	at com.datastax.driver.core.Cluster.init(Cluster.java:208)
+	at com.datastax.driver.core.Cluster.connectAsync(Cluster.java:376)
+	at com.datastax.driver.core.Cluster.connectAsync(Cluster.java:355)
+	at com.datastax.driver.core.Cluster.connect(Cluster.java:305)
+	at org.commonjava.storage.pathmapped.pathdb.datastax.CassandraPathDB.<init>(CassandraPathDB.java:120)
+	at org.commonjava.maven.galley.cache.pathmapped.PathMappedCacheProviderFactory.create(PathMappedCacheProviderFactory.java:75)
+	... 57 common frames omitted
+ 13:46:12.612 [main] INFO  c.datastax.driver.core.ClockFactory - Using native clock to generate timestamps.
+ 13:46:12.625 [main] ERROR o.c.i.f.d.DefaultGalleyStorageProvider - [Indy] Can not create CacheProvider for some error.
+org.commonjava.maven.galley.GalleyInitException: Create cache provider failed
+	at org.commonjava.maven.galley.cache.pathmapped.PathMappedCacheProviderFactory.create(PathMappedCacheProviderFactory.java:87)
+	at org.commonjava.indy.filer.def.DefaultGalleyStorageProvider.getCacheProvider(DefaultGalleyStorageProvider.java:377)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.lang.reflect.Method.invoke(Method.java:498)
+	at org.jboss.weld.injection.StaticMethodInjectionPoint.invoke(StaticMethodInjectionPoint.java:88)
+	at org.jboss.weld.injection.StaticMethodInjectionPoint.invoke(StaticMethodInjectionPoint.java:78)
+	at org.jboss.weld.injection.producer.ProducerMethodProducer.produce(ProducerMethodProducer.java:100)
+	at org.jboss.weld.injection.producer.AbstractMemberProducer.produce(AbstractMemberProducer.java:161)
+	at org.jboss.weld.bean.AbstractProducerBean.create(AbstractProducerBean.java:180)
+	at org.jboss.weld.context.unbound.DependentContextImpl.get(DependentContextImpl.java:70)
+	at org.jboss.weld.bean.ContextualInstanceStrategy$DefaultContextualInstanceStrategy.get(ContextualInstanceStrategy.java:100)
+	at org.jboss.weld.bean.ContextualInstance.get(ContextualInstance.java:50)
+	at org.jboss.weld.manager.BeanManagerImpl.getReference(BeanManagerImpl.java:786)
+	at org.jboss.weld.manager.BeanManagerImpl.getInjectableReference(BeanManagerImpl.java:886)
+	at org.jboss.weld.injection.FieldInjectionPoint.inject(FieldInjectionPoint.java:92)
+	at org.jboss.weld.util.Beans.injectBoundFields(Beans.java:358)
+	at org.jboss.weld.util.Beans.injectFieldsAndInitializers(Beans.java:369)
+	at org.jboss.weld.injection.producer.ResourceInjector$1.proceed(ResourceInjector.java:70)
+	at org.jboss.weld.injection.InjectionContextImpl.run(InjectionContextImpl.java:48)
+	at org.jboss.weld.injection.producer.ResourceInjector.inject(ResourceInjector.java:72)
+	at org.jboss.weld.injection.producer.BasicInjectionTarget.inject(BasicInjectionTarget.java:117)
+	at org.jboss.weld.bean.ManagedBean.create(ManagedBean.java:159)
+	at org.jboss.weld.context.AbstractContext.get(AbstractContext.java:96)
+	at org.jboss.weld.bean.ContextualInstanceStrategy$DefaultContextualInstanceStrategy.get(ContextualInstanceStrategy.java:100)
+	at org.jboss.weld.bean.ContextualInstanceStrategy$ApplicationScopedContextualInstanceStrategy.get(ContextualInstanceStrategy.java:140)
+	at org.jboss.weld.bean.ContextualInstance.get(ContextualInstance.java:50)
+	at org.jboss.weld.bean.proxy.ContextBeanInstance.getInstance(ContextBeanInstance.java:99)
+	at org.jboss.weld.bean.proxy.ProxyMethodHandler.getInstance(ProxyMethodHandler.java:125)
+	at org.commonjava.indy.pathmapped.cache.PathMappedMavenGACache$Proxy$_$$_WeldClientProxy.getStartupPriority(Unknown Source)
+	at org.commonjava.indy.action.IndyLifecycleManager$3.compare(IndyLifecycleManager.java:331)
+	at org.commonjava.indy.action.IndyLifecycleManager$3.compare(IndyLifecycleManager.java:327)
+	at java.util.TimSort.binarySort(TimSort.java:296)
+	at java.util.TimSort.sort(TimSort.java:221)
+	at java.util.Arrays.sort(Arrays.java:1512)
+	at java.util.ArrayList.sort(ArrayList.java:1462)
+	at java.util.Collections.sort(Collections.java:177)
+	at org.commonjava.indy.action.IndyLifecycleManager.runStartupActions(IndyLifecycleManager.java:234)
+	at org.commonjava.indy.action.IndyLifecycleManager.start(IndyLifecycleManager.java:144)
+	at org.commonjava.indy.action.IndyLifecycleManager$Proxy$_$$_WeldClientProxy.start(Unknown Source)
+	at org.commonjava.indy.boot.jaxrs.JaxRsBooter.startLifecycle(JaxRsBooter.java:108)
+	at org.commonjava.propulsor.boot.Booter.start(Booter.java:278)
+	at org.commonjava.propulsor.boot.Booter.runAndWait(Booter.java:203)
+	at org.commonjava.indy.boot.jaxrs.JaxRsBooter.main(JaxRsBooter.java:66)
+Caused by: com.datastax.driver.core.exceptions.NoHostAvailableException: All host(s) tried for query failed (tried: localhost/127.0.0.1:9042 (com.datastax.driver.core.exceptions.TransportException: [localhost/127.0.0.1:9042] Cannot connect))
+	at com.datastax.driver.core.ControlConnection.reconnectInternal(ControlConnection.java:268)
+	at com.datastax.driver.core.ControlConnection.connect(ControlConnection.java:107)
+	at com.datastax.driver.core.Cluster$Manager.negotiateProtocolVersionAndConnect(Cluster.java:1652)
+	at com.datastax.driver.core.Cluster$Manager.init(Cluster.java:1571)
+	at com.datastax.driver.core.Cluster.init(Cluster.java:208)
+	at com.datastax.driver.core.Cluster.connectAsync(Cluster.java:376)
+	at com.datastax.driver.core.Cluster.connectAsync(Cluster.java:355)
+	at com.datastax.driver.core.Cluster.connect(Cluster.java:305)
+	at org.commonjava.storage.pathmapped.pathdb.datastax.CassandraPathDB.<init>(CassandraPathDB.java:120)
+	at org.commonjava.maven.galley.cache.pathmapped.PathMappedCacheProviderFactory.create(PathMappedCacheProviderFactory.java:75)
+	... 44 common frames omitted
+ 13:46:12.653 [main] INFO  o.c.indy.action.IndyLifecycleManager - Running startup actions...
+ 13:46:12.654 [main] INFO  o.c.indy.action.IndyLifecycleManager - Running startup action: 'folo-backup-sealed-records'
+ 13:46:12.693 [main] INFO  org.hibernate.search.engine.Version - HSEARCH000034: Hibernate Search 5.10.3.Final
+ 13:46:12.725 [main] INFO  o.h.a.c.r.java.JavaReflectionManager - HCANN000001: Hibernate Commons Annotations {5.0.4.Final}
+ 13:46:12.808 [main] WARN  o.h.s.i.i.LuceneEmbeddedIndexFamilyImpl - HSEARCH000075: Configuration setting hibernate.search.lucene_version was not specified: using LUCENE_CURRENT.
+ 13:46:12.900 [main] INFO  o.i.query.impl.LifecycleManager - ISPN014003: Registering Query interceptor for cache nfc
+ 13:46:12.908 [main] WARN  o.i.c.c.IndexingConfigurationBuilder - ISPN000403: No indexable classes were defined for this indexed cache; switching to autodetection (support for autodetection will be removed in Infinispan 10.0).
+ 13:46:12.916 [main] INFO  o.i.f.TransactionManagerFactory - ISPN000161: Using a batchMode transaction manager
+ 13:46:13.114 [main] WARN  o.h.s.s.s.BaseDirectoryProviderService - HSEARCH000346: The 'ram' directory provider is deprecated and will be removed in a future version. You should use 'local-heap' instead. Also, this should not be used in a production environment. Please refer to the official documentation for more information.
+ 13:46:13.214 [main] WARN  o.h.s.i.i.LuceneEmbeddedIndexFamilyImpl - HSEARCH000075: Configuration setting hibernate.search.lucene_version was not specified: using LUCENE_CURRENT.
+ 13:46:13.246 [main] WARN  o.h.s.s.s.BaseDirectoryProviderService - HSEARCH000346: The 'ram' directory provider is deprecated and will be removed in a future version. You should use 'local-heap' instead. Also, this should not be used in a production environment. Please refer to the official documentation for more information.
+ 13:46:13.263 [main] INFO  o.i.query.impl.LifecycleManager - ISPN014003: Registering Query interceptor for cache folo-in-progress
+ 13:46:13.263 [main] WARN  o.i.c.c.IndexingConfigurationBuilder - ISPN000403: No indexable classes were defined for this indexed cache; switching to autodetection (support for autodetection will be removed in Infinispan 10.0).
+ 13:46:13.277 [main] INFO  o.c.indy.action.IndyLifecycleManager - Running startup action: 'koji-client'
+ 13:46:13.277 [main] INFO  o.c.indy.action.IndyLifecycleManager - Running startup action: 'folo'
+ 13:46:13.281 [main] INFO  o.c.indy.action.IndyLifecycleManager - Running startup action: 'zabbix'
+ 13:46:13.282 [main] INFO  o.c.indy.action.IndyLifecycleManager - Running startup action: 'Infinispan by-pkg map initializer'
+ 13:46:13.286 [main] WARN  o.h.s.i.i.LuceneEmbeddedIndexFamilyImpl - HSEARCH000075: Configuration setting hibernate.search.lucene_version was not specified: using LUCENE_CURRENT.
+ 13:46:13.288 [main] INFO  o.i.query.impl.LifecycleManager - ISPN014003: Registering Query interceptor for cache store-by-package
+ 13:46:13.289 [main] WARN  o.i.c.c.IndexingConfigurationBuilder - ISPN000403: No indexable classes were defined for this indexed cache; switching to autodetection (support for autodetection will be removed in Infinispan 10.0).
+ 13:46:13.311 [main] INFO  o.c.indy.action.IndyLifecycleManager - Running startup action: 'metric'
+ 13:46:13.311 [main] INFO  o.c.indy.action.IndyLifecycleManager - Running startup action: 'Content index warmer'
+ 13:46:13.311 [main] INFO  o.c.indy.action.IndyLifecycleManager - Running startup action: 'Infinispan affected-by reverse-map initializer'
+ 13:46:13.316 [main] ERROR o.c.i.i.d.InfinispanStoreDataManager - Affected-by reverse mapping appears to have failed. The affected-by cache is empty!
+ 13:46:13.317 [main] INFO  o.c.indy.action.IndyLifecycleManager - Running startup action: 'httproxy-listener'
+ 13:46:13.317 [main] INFO  o.c.indy.action.IndyLifecycleManager - Running startup action: 'Default artifact store initialization'
+ 13:46:13.326 [main] WARN  o.c.i.d.c.AbstractStoreDataManager - Storing RemoteRepository [central, https://repo.maven.apache.org/maven2/] using operation lock: org.commonjava.cdi.util.weft.Locker@15a2fddd
+ 13:46:13.992 [store-validation-1] WARN  o.c.indy.data.DefaultStoreValidator - => Check HTTP HEAD Response code: 200
+ 13:46:13.992 [store-validation-0] WARN  o.c.indy.data.DefaultStoreValidator - => Check HTTP GET Response code: 200
+ 13:46:13.994 [main] WARN  o.c.indy.data.DefaultStoreValidator - => Success HTTP GET and HEAD Response from Remote Repository: https://repo.maven.apache.org/maven2/
+ 13:46:14.054 [main] WARN  o.c.i.d.c.AbstractStoreDataManager - Storing HostedRepository [local-deployments] using operation lock: org.commonjava.cdi.util.weft.Locker@15a2fddd
+ 13:46:14.057 [main] WARN  o.c.i.d.c.AbstractStoreDataManager - Storing Group[public] using operation lock: org.commonjava.cdi.util.weft.Locker@15a2fddd
+ 13:46:14.061 [main] INFO  o.c.indy.action.IndyLifecycleManager - Running startup action: 'MavenGACache'
+ 13:46:14.061 [main] INFO  o.c.indy.action.IndyLifecycleManager - ...done. Indy is ready to run.
+ 13:46:14.240 [main] WARN  i.u.s.h.b.PredicatedHandlersParser - UT005060: Predicate max-content-size[5120] uses old style square braces to define predicates, which will be removed in a future release. predicate[value] should be changed to predicate(value)
+ 13:46:14.493 [main] INFO  org.xnio.Xnio - XNIO version 3.8.0.Final
+ 13:46:14.505 [main] INFO  org.xnio.nio.NioXnio - XNIO NIO Implementation Version 3.8.0.Final
+ 13:46:14.538 [main] INFO  io.undertow.Undertow - starting server: Undertow - 2.1.0.Final
+ 13:46:57.699 [Thread-10] INFO  o.c.indy.action.IndyLifecycleManager - 
+
+
+
+
+ SHUTTING DOWN Indy
+    Version: 2.5.0-SNAPSHOT
+    Built-By: gorgigeorgievski
+    Commit-ID: 4013f0e
+    Built-On: 2020-08-26 12:49 +0200
+
+
+
+
+
+ 13:46:57.702 [Thread-10] INFO  o.c.indy.action.IndyLifecycleManager - Running shutdown actions...
+ 13:46:57.702 [Thread-10] INFO  o.c.indy.action.IndyLifecycleManager - Running shutdown action: 'koji-client'
+ 13:46:57.703 [Thread-10] INFO  o.c.indy.action.IndyLifecycleManager - Running shutdown action: 'httproxy-listener'
+ 13:46:57.703 [Thread-10] INFO  o.c.indy.action.IndyLifecycleManager - Running shutdown action: 'Indy ContentIndexManager'
+ 13:46:57.703 [Thread-10] INFO  o.c.indy.action.IndyLifecycleManager - Running shutdown action: 'Indy Scheduler'
+ 13:46:57.703 [Thread-10] INFO  o.c.indy.action.IndyLifecycleManager - Running shutdown action: 'infinispan-caches'
+ 13:46:57.703 [Thread-10] INFO  o.c.i.s.infinispan.CacheProducer - Stopping Infinispan caches.
+ 13:46:57.725 [Thread-10] INFO  o.i.e.impl.PassivationManagerImpl - ISPN000029: Passivating all entries to disk
+ 13:46:57.769 [Thread-10] INFO  o.i.e.impl.PassivationManagerImpl - ISPN000030: Passivated 3 entries in 43 milliseconds
+ 13:46:57.774 [Thread-10] INFO  o.i.e.impl.PassivationManagerImpl - ISPN000029: Passivating all entries to disk
+ 13:46:57.774 [Thread-10] INFO  o.i.e.impl.PassivationManagerImpl - ISPN000030: Passivated 0 entries in 0 milliseconds
+ 13:46:57.777 [Thread-10] INFO  o.i.e.impl.PassivationManagerImpl - ISPN000029: Passivating all entries to disk
+ 13:46:57.777 [Thread-10] INFO  o.i.e.impl.PassivationManagerImpl - ISPN000030: Passivated 0 entries in 0 milliseconds
+ 13:46:57.778 [Thread-10] INFO  o.c.indy.action.IndyLifecycleManager - ...done. Indy is ready to shut down.

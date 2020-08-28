@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module org.jetbrains.idea.maven.project.MavenProjectsManager.isMavenModule="true" type="JAVA_MODULE" version="4">
+  <component name="NewModuleRootManager" LANGUAGE_LEVEL="JDK_1_8">
+    <output url="file://$MODULE_DIR$/target/classes" />
+    <output-test url="file://$MODULE_DIR$/target/test-classes" />
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/src/main/java" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/main/resources" type="java-resource" />
+      <excludeFolder url="file://$MODULE_DIR$/target" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" name="Maven: io.dropwizard.metrics:metrics-core:4.0.2" level="project" />
+    <orderEntry type="library" name="Maven: org.slf4j:slf4j-api:1.7.21" level="project" />
+    <orderEntry type="library" name="Maven: io.dropwizard.metrics:metrics-jvm:4.0.2" level="project" />
+    <orderEntry type="library" name="Maven: io.dropwizard.metrics:metrics-healthchecks:4.0.2" level="project" />
+    <orderEntry type="library" name="Maven: org.apache.commons:commons-lang3:3.7" level="project" />
+    <orderEntry type="module" module-name="indy-api" />
+    <orderEntry type="module" module-name="indy-model-core-java" />
+    <orderEntry type="library" name="Maven: com.fasterxml.jackson.core:jackson-annotations:2.10.1" level="project" />
+    <orderEntry type="library" name="Maven: org.commonjava.atlas:atlas-identities:1.1.0" level="project" />
+    <orderEntry type="library" name="Maven: org.commonjava.atlas:atlas-bindings-jackson-identities:1.1.0" level="project" />
+    <orderEntry type="library" name="Maven: org.commonjava.atlas:atlas-relationships-api:1.1.0" level="project" />
+    <orderEntry type="library" name="Maven: org.commonjava.atservice:atservice-annotation:0.1" level="project" />
+    <orderEntry type="library" name="Maven: javax.annotation:javax.annotation-api:1.3.2" level="project" />
+    <orderEntry type="library" name="Maven: org.commonjava.propulsor.config:propulsor-configuration-core:1.4" level="project" />
+    <orderEntry type="library" name="Maven: commons-io:commons-io:2.4" level="project" />
+    <orderEntry type="library" name="Maven: org.codehaus.plexus:plexus-interpolation:1.19" level="project" />
+    <orderEntry type="library" name="Maven: commons-lang:commons-lang:2.6" level="project" />
+    <orderEntry type="library" name="Maven: org.commonjava.maven.galley:galley-transport-httpclient:1.4" level="project" />
+    <orderEntry type="library" name="Maven: org.commonjava.maven.galley:galley-api:1.4" level="project" />
+    <orderEntry type="library" name="Maven: org.commonjava.util:jhttpc:1.11" level="project" />
+    <orderEntry type="library" name="Maven: org.bouncycastle:bcprov-jdk15on:1.64" level="project" />
+    <orderEntry type="library" name="Maven: org.bouncycastle:bcpkix-jdk15on:1.64" level="project" />
+    <orderEntry type="library" name="Maven: org.apache.httpcomponents:httpclient:4.5.9" level="project" />
+    <orderEntry type="library" name="Maven: org.apache.httpcomponents:httpcore:4.4.9" level="project" />
+    <orderEntry type="library" name="Maven: commons-codec:commons-codec:1.10" level="project" />
+    <orderEntry type="library" name="Maven: org.jsoup:jsoup:1.8.3" level="project" />
+    <orderEntry type="library" name="Maven: org.slf4j:jcl-over-slf4j:1.7.21" level="project" />
+    <orderEntry type="library" name="Maven: org.slf4j:log4j-over-slf4j:1.7.21" level="project" />
+    <orderEntry type="library" name="Maven: org.commonjava.cdi.util:weft:1.17" level="project" />
+    <orderEntry type="library" name="Maven: org.commonjava.maven.galley:galley-core:1.4" level="project" />
+    <orderEntry type="library" name="Maven: org.commonjava.maven.galley:galley-cache-partyline:1.4" level="project" />
+    <orderEntry type="library" name="Maven: org.commonjava.util:partyline:1.16" level="project" />
+    <orderEntry type="library" name="Maven: com.fasterxml.jackson.core:jackson-core:2.10.1" level="project" />
+    <orderEntry type="library" name="Maven: com.fasterxml.jackson.core:jackson-databind:2.10.1" level="project" />
+    <orderEntry type="library" name="Maven: javax.activation:javax.activation-api:1.2.0" level="project" />
+    <orderEntry type="library" name="Maven: ch.qos.logback:logback-classic:1.2.3" level="project" />
+    <orderEntry type="library" name="Maven: ch.qos.logback:logback-core:1.2.3" level="project" />
+    <orderEntry type="library" name="Maven: com.github.danielwegener:logback-kafka-appender:0.2.0-RC2" level="project" />
+    <orderEntry type="library" name="Maven: org.apache.kafka:kafka-clients:1.1.0" level="project" />
+    <orderEntry type="library" name="Maven: org.lz4:lz4-java:1.4" level="project" />
+    <orderEntry type="library" name="Maven: org.xerial.snappy:snappy-java:1.1.7.1" level="project" />
+    <orderEntry type="library" name="Maven: ch.qos.logback.contrib:logback-json-classic:0.1.5" level="project" />
+    <orderEntry type="library" name="Maven: ch.qos.logback.contrib:logback-json-core:0.1.5" level="project" />
+    <orderEntry type="library" name="Maven: ch.qos.logback.contrib:logback-jackson:0.1.5" level="project" />
+    <orderEntry type="library" scope="PROVIDED" name="Maven: javax.enterprise:cdi-api:1.2" level="project" />
+    <orderEntry type="library" scope="PROVIDED" name="Maven: javax.el:javax.el-api:3.0.0" level="project" />
+    <orderEntry type="library" scope="PROVIDED" name="Maven: javax.interceptor:javax.interceptor-api:1.2" level="project" />
+    <orderEntry type="library" name="Maven: javax.inject:javax.inject:1" level="project" />
+    <orderEntry type="library" scope="TEST" name="Maven: junit:junit:4.12" level="project" />
+    <orderEntry type="library" scope="TEST" name="Maven: org.hamcrest:hamcrest-core:1.3" level="project" />
+    <orderEntry type="library" name="Maven: org.codehaus.plexus:plexus-container-default:1.6" level="project" />
+    <orderEntry type="library" name="Maven: org.codehaus.plexus:plexus-utils:2.0.6" level="project" />
+    <orderEntry type="library" name="Maven: org.codehaus.plexus:plexus-classworlds:2.4" level="project" />
+    <orderEntry type="library" name="Maven: org.apache.xbean:xbean-reflect:3.16" level="project" />
+  </component>
+</module>
